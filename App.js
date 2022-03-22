@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
 	StyleSheet,
@@ -7,8 +7,14 @@ import {
 	TouchableOpacity,
 	TextInput,
 	ScrollView,
+	ActivityIndicator,
+	Alert,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { theme } from "./color";
+import { Feather } from "@expo/vector-icons";
+
+const STORAGE_KEY = "@toDos";
 
 export default function App() {
 	const [working, setWorking] = useState(true);
@@ -17,18 +23,53 @@ export default function App() {
 	const travle = () => setWorking(false);
 	const work = () => setWorking(true);
 	const onChangeText = (payload) => setText(payload);
-	const addToDo = () => {
+	const saveToDos = async (toSave) => {
+		try {
+			await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+		} catch (e) {
+			console.log(e);
+			Alert.alert(e);
+		}
+	};
+	const loadToDos = async () => {
+		try {
+			const s = await AsyncStorage.getItem(STORAGE_KEY);
+			setToDos(JSON.parse(s));
+		} catch (e) {
+			console.log(e);
+			Alert.alert(e);
+		}
+	};
+	useEffect(() => {
+		loadToDos();
+	}, []);
+	const addToDo = async () => {
 		if (text === "") {
 			return;
 		}
 		const newToDos = { ...toDos, [Date.now()]: { text, working } };
 		setToDos(newToDos);
+		await saveToDos(newToDos);
 		setText("");
 	};
-
+	const deleteToDo = async (id) => {
+		Alert.alert("Delete To Do?", "Are you sure?", [
+			{ text: "Cancel" },
+			{
+				text: "I'm sure",
+				style: "destructive",
+				onPress: async () => {
+					const newToDos = { ...toDos };
+					delete newToDos[id]; // state 에 저장하기 전에 mutate 한다.
+					setToDos(newToDos);
+					await saveToDos(newToDos);
+				},
+			},
+		]);
+	};
 	return (
 		<View style={styles.container}>
-			<StatusBar style="auto" />
+			<StatusBar style="light" />
 			<View style={styles.header}>
 				<TouchableOpacity onPress={work}>
 					<Text
@@ -62,17 +103,36 @@ export default function App() {
 				keyboardAppearance="dark"
 				returnKeyType="done"
 			/>
-			<ScrollView>
-				{Object.keys(toDos).map((key) =>
-					toDos[key].working === working ? (
-						<View style={styles.toDo} key={key}>
-							<Text style={styles.toDoText}>
-								{toDos[key].text}
-							</Text>
-						</View>
-					) : null
-				)}
-			</ScrollView>
+			{toDos === {} ? (
+				<View style={styles.loadingView}>
+					<ActivityIndicator
+						color={theme.white}
+						style={styles.loadingCircle}
+						size="large"
+					/>
+				</View>
+			) : (
+				<ScrollView>
+					{Object.keys(toDos).map((key) =>
+						toDos[key].working === working ? (
+							<View style={styles.toDo} key={key}>
+								<Text style={styles.toDoText}>
+									{toDos[key].text}
+								</Text>
+								<TouchableOpacity
+									onPress={() => deleteToDo(key)}
+								>
+									<Feather
+										name="trash-2"
+										size={24}
+										color={theme.grey}
+									/>
+								</TouchableOpacity>
+							</View>
+						) : null
+					)}
+				</ScrollView>
+			)}
 		</View>
 	);
 }
@@ -103,6 +163,9 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 	},
 	toDo: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
 		backgroundColor: theme.toDoBg,
 		marginBottom: 10,
 		paddingVertical: 20,
@@ -110,4 +173,10 @@ const styles = StyleSheet.create({
 		borderRadius: 15,
 	},
 	toDoText: { color: theme.white, fontSize: 16, fontWeight: "500" },
+	loadingView: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	loadingCircle: { marginTop: -150 },
 });
