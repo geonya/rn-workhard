@@ -54,8 +54,10 @@ export default function App() {
 	};
 	const loadToDos = async () => {
 		try {
-			const tab = await AsyncStorage.getItem(STORAGE_TODO_KEY);
-			setToDos(JSON.parse(tab));
+			const toDos = await AsyncStorage.getItem(STORAGE_TODO_KEY);
+			if (toDos) {
+				setToDos(JSON.parse(toDos));
+			}
 		} catch (e) {
 			console.log(e);
 			Alert.alert(e);
@@ -63,8 +65,10 @@ export default function App() {
 	};
 	const loadTab = async () => {
 		try {
-			const t = await AsyncStorage.getItem(STORAGE_TAB_KEY);
-			setWorking(JSON.parse(t));
+			const tab = await AsyncStorage.getItem(STORAGE_TAB_KEY);
+			if (tab) {
+				setWorking(JSON.parse(tab));
+			}
 		} catch (e) {
 			console.log(e);
 			Alert.alert(e);
