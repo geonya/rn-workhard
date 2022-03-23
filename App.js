@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+
 import { StatusBar } from "expo-status-bar";
 import {
 	StyleSheet,
@@ -9,6 +10,7 @@ import {
 	ScrollView,
 	ActivityIndicator,
 	Alert,
+	Platform,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { theme } from "./color";
@@ -89,19 +91,29 @@ export default function App() {
 	};
 
 	const deleteToDo = async (id) => {
-		Alert.alert("Delete To Do?", "Are you sure?", [
-			{ text: "Cancel" },
-			{
-				text: "I'm sure",
-				style: "destructive",
-				onPress: async () => {
-					const newToDos = { ...toDos };
-					delete newToDos[id]; // state 에 저장하기 전에 mutate 한다.
-					setToDos(newToDos);
-					await saveToDos(newToDos);
+		if (Platform.OS === "web") {
+			const ok = confirm("Do you want to delete this To Do?");
+			if (ok) {
+				const newToDos = { ...toDos };
+				delete newToDos[id];
+				setToDos(newToDos);
+				await saveToDos(newToDos);
+			}
+		} else {
+			Alert.alert("Delete To Do?", "Are you sure?", [
+				{ text: "Cancel" },
+				{
+					text: "I'm sure",
+					style: "destructive",
+					onPress: async () => {
+						const newToDos = { ...toDos };
+						delete newToDos[id]; // state 에 저장하기 전에 mutate 한다.
+						setToDos(newToDos);
+						await saveToDos(newToDos);
+					},
 				},
-			},
-		]);
+			]);
+		}
 	};
 	const doneToDo = async (id) => {
 		const toDo = toDos[id];
@@ -163,7 +175,9 @@ export default function App() {
 					<TouchableOpacity onPress={work}>
 						<Text
 							style={{
-								...styles.btnText,
+								fontSize: 38,
+								fontWeight: "600",
+								color: theme.white,
 								color: working ? theme.white : theme.grey,
 							}}
 						>
@@ -173,7 +187,9 @@ export default function App() {
 					<TouchableOpacity onPress={travel}>
 						<Text
 							style={{
-								...styles.btnText,
+								fontSize: 38,
+								fontWeight: "600",
+								color: theme.white,
 								color: working ? theme.grey : theme.white,
 							}}
 						>
@@ -183,6 +199,7 @@ export default function App() {
 				</View>
 			</View>
 			<TextInput
+				textAlign="center"
 				onSubmitEditing={addToDo}
 				onChangeText={onChangeText}
 				style={styles.input}
@@ -192,6 +209,7 @@ export default function App() {
 				}
 				keyboardAppearance="dark"
 				returnKeyType="done"
+				maxLength={20}
 			/>
 			{toDos === {} ? ( // if toDos empty loading {} ? null ?
 				<View style={styles.loadingView}>
@@ -230,12 +248,14 @@ export default function App() {
 									<TextInput
 										style={{
 											...styles.editToDo,
+											width: 200,
 											textDecorationLine: toDos[key].done
 												? "line-through"
 												: "none",
 											color: toDos[key].done
 												? theme.grey
 												: theme.white,
+											textAlign: "center",
 										}}
 										editable={
 											toDos[key].done ? false : true
@@ -250,6 +270,7 @@ export default function App() {
 										keyboardAppearance="dark"
 										returnKeyType="done"
 										placeholder="   "
+										maxLength={20}
 									/>
 									<TouchableOpacity
 										onPress={() => deleteToDo(key)}
@@ -278,11 +299,6 @@ const styles = StyleSheet.create({
 	header: {
 		marginTop: 100,
 	},
-	btnText: {
-		fontSize: 38,
-		fontWeight: "600",
-		color: theme.white,
-	},
 	input: {
 		backgroundColor: theme.white,
 		paddingVertical: 15,
@@ -291,6 +307,7 @@ const styles = StyleSheet.create({
 		borderRadius: 30,
 		marginTop: 20,
 		fontSize: 18,
+		textAlign: "center",
 	},
 	toDo: {
 		flexDirection: "row",
@@ -302,7 +319,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 20,
 		borderRadius: 15,
 	},
-	toDoText: { color: theme.white, fontSize: 16, fontWeight: "500" },
+
 	loadingView: {
 		flex: 1,
 		justifyContent: "center",
